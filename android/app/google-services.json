@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "640669716842",
+    "project_id": "smart-medicine-eb37a",
+    "storage_bucket": "smart-medicine-eb37a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:640669716842:android:bb6102da9c6e00f8a55513",
+        "android_client_info": {
+          "package_name": "com.example.aegis_smart_medicine_reminder_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyQ5GgcYMzSk2fjrJXAQeFn5NlmIYphp0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
