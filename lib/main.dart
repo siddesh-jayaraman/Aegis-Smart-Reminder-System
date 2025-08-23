@@ -1,6 +1,7 @@
 import 'package:aegis_smart_medicine_reminder_system/feature/auth/pages/login_page.dart';
 import 'package:aegis_smart_medicine_reminder_system/core/theme/app_theme.dart';
 import 'package:aegis_smart_medicine_reminder_system/core/services/notification_service.dart';
+import 'package:aegis_smart_medicine_reminder_system/feature/home/pages/home_screen.dart';
 import 'package:aegis_smart_medicine_reminder_system/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
         fontFamily: 'CalSans',
       ),
-      home: const LoginPage(),
+      home: const HomeScreen(),
     );
   }
 }

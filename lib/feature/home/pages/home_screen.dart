@@ -1,3 +1,4 @@
+import 'package:aegis_smart_medicine_reminder_system/feature/device/bluetooth_connections.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'schedule_screen.dart';
@@ -11,7 +12,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   void _showSettingsDialog() {
     showDialog(
       context: context,
@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
         TimeOfDay? morningTime = const TimeOfDay(hour: 8, minute: 0);
         TimeOfDay? afternoonTime = const TimeOfDay(hour: 14, minute: 0);
         TimeOfDay? nightTime = const TimeOfDay(hour: 20, minute: 0);
-        
+
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
@@ -47,7 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Volume Slider
                     Row(
                       children: [
-                        Icon(Icons.volume_up, color: tempDarkMode ? Colors.white : Colors.black),
+                        Icon(
+                          Icons.volume_up,
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Slider(
@@ -74,11 +77,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Dark Mode Toggle
                     Row(
                       children: [
-                        Icon(Icons.dark_mode, color: tempDarkMode ? Colors.white : Colors.black),
+                        Icon(
+                          Icons.dark_mode,
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
@@ -105,11 +111,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Phone Notifications Toggle
                     Row(
                       children: [
-                        Icon(Icons.notifications, color: tempDarkMode ? Colors.white : Colors.black),
+                        Icon(
+                          Icons.notifications,
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
@@ -133,14 +142,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
-                                          // Sleep Mode Toggle
-                      Row(
-                        children: [
-                          Icon(Icons.bedtime, color: tempDarkMode ? Colors.white : Colors.black),
-                          const SizedBox(width: 16),
-                          Expanded(
-                                                      child: Text(
+
+                    // Sleep Mode Toggle
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.bedtime,
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
                             'Sleep Mode (No Alerts 10pm–6am)',
                             style: TextStyle(
                               fontFamily: 'CalSans',
@@ -148,27 +160,29 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          ),
-                          Switch(
-                            value: tempSleepMode,
-                            onChanged: (value) {
-                              setStateDialog(() {
-                                tempSleepMode = value;
-                              });
-                            },
-                            activeColor: const Color(0xFF1565C0),
-                          ),
-                        ],
-                      ),
+                        ),
+                        Switch(
+                          value: tempSleepMode,
+                          onChanged: (value) {
+                            setStateDialog(() {
+                              tempSleepMode = value;
+                            });
+                          },
+                          activeColor: const Color(0xFF1565C0),
+                        ),
+                      ],
+                    ),
 
-
-                      // Caregiver Mode Toggle
-                      Row(
-                        children: [
-                          Icon(Icons.people, color: tempDarkMode ? Colors.white : Colors.black),
-                          const SizedBox(width: 16),
-                          Expanded(
-                                                      child: Text(
+                    // Caregiver Mode Toggle
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.people,
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
                             'Caregiver Mode',
                             style: TextStyle(
                               fontFamily: 'CalSans',
@@ -176,67 +190,113 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                        ),
+                        Switch(
+                          value: tempCaregiverMode,
+                          onChanged: (value) {
+                            setStateDialog(() {
+                              tempCaregiverMode = value;
+                            });
+                            setState(() {
+                              AppTheme.setCaregiverMode(value);
+                            });
+                          },
+                          activeColor: const Color(0xFF1565C0),
+                        ),
+                      ],
+                    ),
+
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BluetoothConnectionPage(),
                           ),
-                          Switch(
-                            value: tempCaregiverMode,
-                            onChanged: (value) {
-                              setStateDialog(() {
-                                tempCaregiverMode = value;
-                              });
-                              setState(() {
-                                AppTheme.setCaregiverMode(value);
-                              });
-                            },
-                            activeColor: const Color(0xFF1565C0),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.bluetooth,
+                            color: tempDarkMode ? Colors.white : Colors.black,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            "Bluetooth Connection",
+                            style: TextStyle(
+                              fontFamily: 'CalSans',
+                              fontWeight: FontWeight.w500,
+                              color: tempDarkMode ? Colors.white : Colors.black,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
-                      if (tempCaregiverMode) ...[
-                        const SizedBox(height: 16),
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Caregiver Email',
-                            labelStyle: TextStyle(color: tempDarkMode ? Colors.white70 : Colors.black54),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1565C0)),
+                    ),
+
+                    if (tempCaregiverMode) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Caregiver Email',
+                          labelStyle: TextStyle(
+                            color: tempDarkMode
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1565C0),
                             ),
                           ),
-                          style: TextStyle(color: tempDarkMode ? Colors.white : Colors.black),
-                          onChanged: (value) {
-                            tempCaregiverEmail = value;
-                            setState(() {
-                              AppTheme.setCaregiverEmail(value);
-                            });
-                          },
                         ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          decoration: InputDecoration(
-                            labelText: 'Caregiver Code',
-                            labelStyle: TextStyle(color: tempDarkMode ? Colors.white70 : Colors.black54),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF1565C0)),
+                        style: TextStyle(
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
+                        onChanged: (value) {
+                          tempCaregiverEmail = value;
+                          setState(() {
+                            AppTheme.setCaregiverEmail(value);
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Caregiver Code',
+                          labelStyle: TextStyle(
+                            color: tempDarkMode
+                                ? Colors.white70
+                                : Colors.black54,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1565C0),
                             ),
                           ),
-                          style: TextStyle(color: tempDarkMode ? Colors.white : Colors.black),
-                          onChanged: (value) {
-                            tempCaregiverCode = value;
-                            setState(() {
-                              AppTheme.setCaregiverCode(value);
-                            });
-                          },
                         ),
-                      ],
-                      const SizedBox(height: 24),
-                    
+                        style: TextStyle(
+                          color: tempDarkMode ? Colors.white : Colors.black,
+                        ),
+                        onChanged: (value) {
+                          tempCaregiverCode = value;
+                          setState(() {
+                            AppTheme.setCaregiverCode(value);
+                          });
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+
                     // Time Picker Buttons
                     Text(
                       'Reminder Times',
@@ -255,7 +315,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             onPressed: () async {
                               final TimeOfDay? picked = await showTimePicker(
                                 context: context,
-                                initialTime: morningTime ?? const TimeOfDay(hour: 8, minute: 0),
+                                initialTime:
+                                    morningTime ??
+                                    const TimeOfDay(hour: 8, minute: 0),
                               );
                               if (picked != null) {
                                 setStateDialog(() {
@@ -288,7 +350,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             onPressed: () async {
                               final TimeOfDay? picked = await showTimePicker(
                                 context: context,
-                                initialTime: afternoonTime ?? const TimeOfDay(hour: 14, minute: 0),
+                                initialTime:
+                                    afternoonTime ??
+                                    const TimeOfDay(hour: 14, minute: 0),
                               );
                               if (picked != null) {
                                 setStateDialog(() {
@@ -321,7 +385,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             onPressed: () async {
                               final TimeOfDay? picked = await showTimePicker(
                                 context: context,
-                                initialTime: nightTime ?? const TimeOfDay(hour: 20, minute: 0),
+                                initialTime:
+                                    nightTime ??
+                                    const TimeOfDay(hour: 20, minute: 0),
                               );
                               if (picked != null) {
                                 setStateDialog(() {
@@ -372,9 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToSchedule() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const ScheduleScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ScheduleScreen()),
     );
   }
 
@@ -392,20 +456,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final savedSchedule = prefs.getStringList('med_schedule');
     final savedMedicineNames = prefs.getStringList('med_medicine_names');
-    
+
     if (savedSchedule == null) return '';
-    
+
     final now = DateTime.now();
     final today = now.weekday - 1; // Convert to 0-based index (Sunday = 0)
     final currentTime = TimeOfDay.fromDateTime(now);
-    
+
     // Check today's remaining doses
     for (int row = 0; row < 3; row++) {
       final index = row * 7 + today;
       if (index < savedSchedule.length && savedSchedule[index] == 'true') {
         final timeSlot = ['Morning', 'Afternoon', 'Night'][row];
         TimeOfDay slotTime;
-        
+
         switch (timeSlot) {
           case 'Morning':
             slotTime = const TimeOfDay(hour: 8, minute: 0);
@@ -419,31 +483,34 @@ class _HomeScreenState extends State<HomeScreen> {
           default:
             slotTime = const TimeOfDay(hour: 8, minute: 0);
         }
-        
+
         // Check if this time slot is in the future
-        if (slotTime.hour > currentTime.hour || 
-            (slotTime.hour == currentTime.hour && slotTime.minute > currentTime.minute)) {
-          final medicineName = savedMedicineNames != null && index < savedMedicineNames.length 
-              ? savedMedicineNames[index] 
+        if (slotTime.hour > currentTime.hour ||
+            (slotTime.hour == currentTime.hour &&
+                slotTime.minute > currentTime.minute)) {
+          final medicineName =
+              savedMedicineNames != null && index < savedMedicineNames.length
+              ? savedMedicineNames[index]
               : 'Medicine';
           return 'Next: $medicineName today at ${slotTime.format(context)} ($timeSlot)';
         }
       }
     }
-    
+
     // Check tomorrow's first dose
     final tomorrow = (today + 1) % 7;
     for (int row = 0; row < 3; row++) {
       final index = row * 7 + tomorrow;
       if (index < savedSchedule.length && savedSchedule[index] == 'true') {
         final timeSlot = ['Morning', 'Afternoon', 'Night'][row];
-        final medicineName = savedMedicineNames != null && index < savedMedicineNames.length 
-            ? savedMedicineNames[index] 
+        final medicineName =
+            savedMedicineNames != null && index < savedMedicineNames.length
+            ? savedMedicineNames[index]
             : 'Medicine';
         return 'Next: $medicineName tomorrow at 8:00 AM (Morning)';
       }
     }
-    
+
     return '';
   }
 
@@ -498,16 +565,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                                        Text(
-                          'Smart Medicine Reminder',
-                          style: TextStyle(
-                            fontFamily: 'CalSans',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w300,
-                            color: AppTheme.subtitleColor,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                Text(
+                  'Smart Medicine Reminder',
+                  style: TextStyle(
+                    fontFamily: 'CalSans',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w300,
+                    color: AppTheme.subtitleColor,
+                    letterSpacing: 0.5,
+                  ),
+                ),
                 const SizedBox(height: 48),
 
                 // Main Content Card
@@ -544,7 +611,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontFamily: 'CalSans',
                           fontSize: 16,
                           fontWeight: FontWeight.w400,
-                          color: isDark ? Colors.white60 : const Color(0xFF666666),
+                          color: isDark
+                              ? Colors.white60
+                              : const Color(0xFF666666),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -562,7 +631,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: AppTheme.buttonPrimary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: AppTheme.buttonPrimary.withOpacity(0.3),
+                                  color: AppTheme.buttonPrimary.withOpacity(
+                                    0.3,
+                                  ),
                                 ),
                               ),
                               child: Row(
@@ -654,11 +725,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 28,
-              color: iconColor ?? const Color(0xFF1565C0),
-            ),
+            Icon(icon, size: 28, color: iconColor ?? const Color(0xFF1565C0)),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
@@ -671,10 +738,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: iconColor ?? const Color(0xFF1565C0)),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: iconColor ?? const Color(0xFF1565C0),
+            ),
           ],
         ),
       ),
     );
   }
-} 
+}
