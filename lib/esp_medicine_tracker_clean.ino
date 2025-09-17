@@ -1,6 +1,4 @@
 #include <WiFi.h>
-#include <WebServer.h>
-#include <EEPROM.h>
 #include <Wire.h>
 #include <RTClib.h>
 #include <ArduinoJson.h>
@@ -18,15 +16,10 @@ String medicineTakenCollection = "medicine_taken";
 // URLs
 String getDeviceURL, createDeviceURL, getPrescriptionsURL, createMedicineTakenURL;
 
-#define EEPROM_SIZE           512
-#define ADDR_SSID_LEN         1
-#define SSID_ADDR             2
-#define EEPROM_MAX_SSID_LEN   32
-#define ADDR_PASS_LEN         (SSID_ADDR + EEPROM_MAX_SSID_LEN)
-#define PASS_ADDR             (ADDR_PASS_LEN + 1)
-#define EEPROM_MAX_PASS_LEN   64
+// WiFi credentials - Static values
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-WebServer server(80);
 RTC_DS3231 rtc;
 
 bool handleLoop = false;
@@ -35,14 +28,11 @@ String uid = "";
 
 // Physical buttons
 #define BUTTON_TAKEN_PIN      17  // TX2 pin
-#define BUTTON_CLEAR_PIN      2   // D2 pin for EEPROM clear
 #define LED_PIN               13
 
 // Button states
 bool buttonTakenPressed = false;
-bool buttonClearPressed = false;
 unsigned long lastButtonPress = 0;
-unsigned long lastClearPress = 0;
 
 // Medicine tracking
 struct Prescription {
@@ -304,21 +294,6 @@ void markAllMedicinesForTimeSlot(String timeSlot) {
 
 // === Button Handling ===
 void checkButtons() {
-  // Check EEPROM clear button (hold for 3 seconds)
-  if (digitalRead(BUTTON_CLEAR_PIN) == LOW && !buttonClearPressed) {
-    buttonClearPressed = true;
-    lastClearPress = millis();
-    Serial.println("🔘 Clear button pressed - hold for 3 seconds to clear EEPROM");
-  } else if (digitalRead(BUTTON_CLEAR_PIN) == LOW && buttonClearPressed) {
-    if (millis() - lastClearPress > 3000) {  // 3 seconds
-      Serial.println("🗑️ Clearing EEPROM...");
-      clearEEPROM();
-      buttonClearPressed = false;
-    }
-  } else if (digitalRead(BUTTON_CLEAR_PIN) == HIGH && buttonClearPressed) {
-    buttonClearPressed = false;
-  }
-  
   // Check medicine taken button
   if (digitalRead(BUTTON_TAKEN_PIN) == LOW && !buttonTakenPressed) {
     buttonTakenPressed = true;
@@ -338,32 +313,6 @@ void checkButtons() {
   }
 }
 
-// Clear EEPROM function
-void clearEEPROM() {
-  for (int i = 0; i < EEPROM_SIZE; i++) {
-    EEPROM.write(i, 0);
-  }
-  EEPROM.commit();
-  Serial.println("✅ EEPROM cleared! Restarting...");
-  delay(2000);
-  ESP.restart();
-}
-
-// Start AP mode for WiFi configuration
-void startAPMode() {
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("ESP32-Medicine-Tracker", "12345678");
-  IPAddress IP = WiFi.softAPIP();
-  Serial.println("📡 AP Mode started!");
-  Serial.println("SSID: ESP32-Medicine-Tracker");
-  Serial.println("Password: 12345678");
-  Serial.println("IP: " + IP.toString());
-  Serial.println("Connect to configure WiFi");
-  
-  server.on("/", handleRoot);
-  server.on("/save", handleSave);
-  server.begin();
-}
 
 // === Medicine Reminder Logic ===
 void checkReminder() {
@@ -428,34 +377,6 @@ int getTimeSlotIndex(String timeSlot) {
   return 0;
 }
 
-// === WiFi Setup ===
-const char htmlPage[] PROGMEM = R"rawliteral(
-<!DOCTYPE html><html><body>
-<h2>WiFi Setup</h2>
-<form action="/save">
-SSID:<br><input name="ssid"><br>
-Password:<br><input name="pass" type="password"><br>
-<input type="submit" value="Connect">
-</form></body></html>)rawliteral";
-
-void handleRoot() {
-  server.send_P(200, "text/html", htmlPage);
-}
-
-void handleSave() {
-  String ssid = server.arg("ssid");
-  String pass = server.arg("pass");
-  EEPROM.write(ADDR_SSID_LEN, ssid.length());
-  for (int i = 0; i < EEPROM_MAX_SSID_LEN; i++)
-    EEPROM.write(SSID_ADDR + i, i < ssid.length() ? ssid[i] : 0);
-  EEPROM.write(ADDR_PASS_LEN, pass.length());
-  for (int i = 0; i < EEPROM_MAX_PASS_LEN; i++)
-    EEPROM.write(PASS_ADDR + i, i < pass.length() ? pass[i] : 0);
-  EEPROM.commit();
-  server.send(200, "text/plain", "Saved. Restarting...");
-  delay(2000);
-  ESP.restart();
-}
 
 void setup() {
   Serial.begin(115200);
@@ -468,18 +389,8 @@ void setup() {
 
   // Setup pins
   pinMode(BUTTON_TAKEN_PIN, INPUT_PULLUP);
-  pinMode(BUTTON_CLEAR_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-
-  EEPROM.begin(EEPROM_SIZE);
-  int slen = EEPROM.read(ADDR_SSID_LEN);
-  String ssid = "", pass = "";
-  if (slen > 0 && slen <= EEPROM_MAX_SSID_LEN)
-    for (int i = 0; i < slen; i++) ssid += char(EEPROM.read(SSID_ADDR + i));
-  int plen = EEPROM.read(ADDR_PASS_LEN);
-  if (plen > 0 && plen <= EEPROM_MAX_PASS_LEN)
-    for (int i = 0; i < plen; i++) pass += char(EEPROM.read(PASS_ADDR + i));
 
   deviceID = "ESP_" + String((uint32_t)ESP.getEfuseMac(), HEX);
   
@@ -499,37 +410,38 @@ void setup() {
                           "/databases/(default)/documents/" + medicineTakenCollection +
                           "?documentId=" + String(millis()) + "&key=" + API_KEY;
 
-  if (ssid.length()) {
-    Serial.println("🌐 Connecting to WiFi: " + ssid);
-    WiFi.begin(ssid.c_str(), pass.c_str());
+  Serial.println("🌐 Connecting to WiFi: " + String(WIFI_SSID));
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+    delay(500); 
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\n✅ Connected! IP: %s\n", WiFi.localIP().toString().c_str());
+    handleLoop = true;
     
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-      delay(500); 
-      Serial.print(".");
-      attempts++;
-    }
-    
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.printf("\n✅ Connected! IP: %s\n", WiFi.localIP().toString().c_str());
-      handleLoop = true;
-      
-      // Initialize Firestore connection
-      if (checkAndCreateDevice()) {
-        if (uid.length() > 0) {
-          fetchPrescriptions();
-        } else {
-          Serial.println("⚠️ Device created but not assigned to user yet");
-          Serial.println("📱 Please connect this device in the app to start using it");
-        }
+    // Initialize Firestore connection
+    if (checkAndCreateDevice()) {
+      if (uid.length() > 0) {
+        fetchPrescriptions();
+      } else {
+        Serial.println("⚠️ Device created but not assigned to user yet");
+        Serial.println("📱 Please connect this device in the app to start using it");
       }
-    } else {
-      Serial.println("\n❌ WiFi connection failed! Starting AP mode...");
-      startAPMode();
     }
   } else {
-    Serial.println("📡 No WiFi credentials found. Starting AP mode...");
-    startAPMode();
+    Serial.println("\n❌ WiFi connection failed!");
+    Serial.println("🔧 Please check your WiFi credentials and try again");
+    while (1) {
+      delay(1000);
+      Serial.println("🔄 Restarting in 5 seconds...");
+      delay(5000);
+      ESP.restart();
+    }
   }
 
   // Initialize alert tracking
@@ -541,13 +453,12 @@ void setup() {
     }
   }
   
-  Serial.println("🔘 Button pins: Taken=" + String(BUTTON_TAKEN_PIN) + ", Clear=" + String(BUTTON_CLEAR_PIN));
-  Serial.println("📡 Internet functionality enabled with AP fallback");
+  Serial.println("🔘 Button pin: Taken=" + String(BUTTON_TAKEN_PIN));
+  Serial.println("📡 Internet functionality enabled");
   Serial.println("🆔 Device ID: " + deviceID);
 }
 
 void loop() {
-  server.handleClient();
   if (handleLoop) {
     static unsigned long lastCheck = 0;
     if (millis() - lastCheck > 300000) {  // Check every 5 minutes
