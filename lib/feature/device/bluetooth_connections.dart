@@ -374,6 +374,15 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          FirebaseFirestore.instance.collection('devices').add({
+            "uid": FirebaseAuth.instance.currentUser!.uid,
+            "name": "PillBox-2",
+            "createdAt": Timestamp.now(),
+          });
+        },
+      ),
       appBar: AppBar(
         title: const Text('WiFi Setup via Bluetooth'),
         backgroundColor: Colors.blue.shade700,

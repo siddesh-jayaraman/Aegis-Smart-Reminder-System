@@ -45,7 +45,9 @@ dependencies:
   intl:
   provider: 
   flutter_blue_plus: 
-  http: 
+  http:
+  table_calendar: ^3.0.9 
+  webview_flutter: ^4.13.0
 
 dev_dependencies:
   flutter_test:

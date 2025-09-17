@@ -1,4 +1,8 @@
 import 'package:aegis_smart_medicine_reminder_system/feature/device/bluetooth_connections.dart';
+import 'package:aegis_smart_medicine_reminder_system/feature/device/model/device_model.dart';
+import 'package:aegis_smart_medicine_reminder_system/feature/home/pages/box_schedule_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'schedule_screen.dart';
@@ -442,6 +446,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _navigateToDeviceSchedule(DeviceModel device) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BoxScheduleScreen(device: device),
+      ),
+    );
+  }
+
   void _syncDevice() {
     // TODO: Implement actual device sync
     ScaffoldMessenger.of(context).showSnackBar(
@@ -576,6 +589,210 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
+
+                // Devices Section
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.devices,
+                            color: AppTheme.buttonPrimary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Your Devices',
+                            style: TextStyle(
+                              fontFamily: 'CalSans',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      FutureBuilder(
+                        future: FirebaseFirestore.instance
+                            .collection('devices')
+                            .where(
+                              "uid",
+                              isEqualTo: FirebaseAuth.instance.currentUser!.uid,
+                            )
+                            .get(),
+                        builder: (context, asyncSnapshot) {
+                          if (asyncSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          if (asyncSnapshot.hasError) {
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error,
+                                    color: Colors.red,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Error loading devices',
+                                    style: TextStyle(
+                                      fontFamily: 'CalSans',
+                                      fontSize: 14,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          if (!asyncSnapshot.hasData ||
+                              asyncSnapshot.data!.docs.isEmpty) {
+                            return Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: AppTheme.isDarkMode
+                                    ? Colors.grey.shade800
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.devices_other,
+                                    color: AppTheme.iconColor.withOpacity(0.5),
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'No devices found. Add a device to get started.',
+                                      style: TextStyle(
+                                        fontFamily: 'CalSans',
+                                        fontSize: 14,
+                                        color: AppTheme.textColor.withOpacity(
+                                          0.7,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: asyncSnapshot.data!.docs.length,
+                            itemBuilder: (context, index) {
+                              var data = asyncSnapshot.data!.docs[index];
+                              var device = DeviceModel.fromMap(
+                                data.id,
+                                data.data(),
+                              );
+                              return GestureDetector(
+                                onTap: () => _navigateToDeviceSchedule(device),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.buttonPrimary.withOpacity(
+                                      0.05,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppTheme.buttonPrimary.withOpacity(
+                                        0.2,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.buttonPrimary
+                                              .withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.medication,
+                                          color: AppTheme.buttonPrimary,
+                                          size: 24,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              device.name,
+                                              style: TextStyle(
+                                                fontFamily: 'CalSans',
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.textColor,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Tap to view schedule',
+                                              style: TextStyle(
+                                                fontFamily: 'CalSans',
+                                                fontSize: 12,
+                                                color: AppTheme.textColor
+                                                    .withOpacity(0.6),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        color: AppTheme.iconColor,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
 
                 // Main Content Card
                 Container(

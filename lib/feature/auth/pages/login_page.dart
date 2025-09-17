@@ -1,5 +1,7 @@
+import 'package:aegis_smart_medicine_reminder_system/feature/auth/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart'; // <-- added for mouse support
+import 'package:provider/provider.dart';
 import 'signup_page.dart';
 import '../../home/pages/home_screen.dart';
 
@@ -32,34 +34,22 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleLogin(FirebaseAuthProvider authProvider) async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    await authProvider.signInWithEmailAndPassword(
+      _emailController.text,
+      _passwordController.text,
+    );
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Navigate to HomeScreen after successful login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
-        ),
-      );
+    if (authProvider.currentUser != null) {
+      if (mounted) {
+        // Navigate to HomeScreen after successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
     }
   }
 
@@ -147,8 +137,6 @@ class _LoginPageState extends State<LoginPage> {
         child: SafeArea(
           child: Stack(
             children: [
-
-
               // Main Content
               Center(
                 child: SingleChildScrollView(
@@ -268,8 +256,9 @@ class _LoginPageState extends State<LoginPage> {
                                   if (value == null || value.isEmpty) {
                                     return 'Please enter your email';
                                   }
-                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                      .hasMatch(value)) {
+                                  if (!RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                  ).hasMatch(value)) {
                                     return 'Please enter a valid email';
                                   }
                                   return null;
@@ -325,55 +314,60 @@ class _LoginPageState extends State<LoginPage> {
                                   onPressed: () {},
                                   child: const Text(
                                     'Forgot Password?',
-                                    style: TextStyle(
-                                      color: Color(0xFF1565C0),
-                                    ),
+                                    style: TextStyle(color: Color(0xFF1565C0)),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              ElevatedButton(
-                                onPressed: _isLoading ? null : _handleLogin,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1565C0),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  Colors.white),
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                              Consumer<FirebaseAuthProvider>(
+                                builder: (context, provider, _) {
+                                  return ElevatedButton(
+                                    onPressed: provider.loading
+                                        ? null
+                                        : () => _handleLogin(provider),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1565C0),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
                                       ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: provider.loading
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Sign In',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  );
+                                },
                               ),
                               const SizedBox(height: 24),
                               Row(
                                 children: [
                                   Expanded(
-                                    child: Divider(
-                                      color: Colors.grey.shade300,
-                                    ),
+                                    child: Divider(color: Colors.grey.shade300),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 16),
+                                      horizontal: 16,
+                                    ),
                                     child: Text(
                                       'OR',
                                       style: TextStyle(
@@ -383,9 +377,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   ),
                                   Expanded(
-                                    child: Divider(
-                                      color: Colors.grey.shade300,
-                                    ),
+                                    child: Divider(color: Colors.grey.shade300),
                                   ),
                                 ],
                               ),
@@ -434,4 +426,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-  
