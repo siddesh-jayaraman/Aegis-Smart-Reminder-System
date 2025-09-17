@@ -16,7 +16,7 @@ String prescriptionsCollection = "prescriptions";
 String medicineTakenCollection = "medicine_taken";
 
 // URLs
-String getDeviceURL, getPrescriptionsURL, createMedicineTakenURL;
+String getDeviceURL, createDeviceURL, getPrescriptionsURL, createMedicineTakenURL;
 
 #define EEPROM_SIZE           512
 #define ADDR_SSID_LEN         1
@@ -89,6 +89,72 @@ String getTimeString() {
 }
 
 // === Firestore Functions ===
+bool checkAndCreateDevice() {
+  HTTPClient http;
+  http.begin(getDeviceURL);
+  int code = http.GET();
+  
+  if (code == 200) {
+    // Device exists, fetch UID
+    String payload = http.getString();
+    StaticJsonDocument<1024> doc;
+    deserializeJson(doc, payload);
+    
+    if (doc["fields"]["uid"]["stringValue"]) {
+      uid = doc["fields"]["uid"]["stringValue"].as<String>();
+      Serial.println("✅ Device found! UID: " + uid);
+      http.end();
+      return true;
+    }
+  } else if (code == 404) {
+    // Device doesn't exist, create it
+    Serial.println("📝 Device not found, creating new device...");
+    http.end();
+    return createDevice();
+  }
+  
+  Serial.println("❌ Failed to check device status. Code: " + String(code));
+  http.end();
+  return false;
+}
+
+bool createDevice() {
+  HTTPClient http;
+  http.begin(createDeviceURL);
+  http.addHeader("Content-Type", "application/json");
+  
+  StaticJsonDocument<512> doc;
+  auto fields = doc.createNestedObject("fields");
+  
+  // Create device document with basic info
+  fields["deviceId"]["stringValue"] = deviceID;
+  fields["name"]["stringValue"] = "ESP32 Medicine Tracker";
+  fields["type"]["stringValue"] = "medicine_tracker";
+  fields["status"]["stringValue"] = "active";
+  fields["createdAt"]["timestampValue"] = String(rtc.now().unixtime()) + "000000";
+  fields["lastSeen"]["timestampValue"] = String(rtc.now().unixtime()) + "000000";
+  
+  // Note: uid will be set when user connects the device in the app
+  fields["uid"]["stringValue"] = "";  // Empty initially
+  
+  String body;
+  serializeJson(doc, body);
+  
+  int code = http.POST(body);
+  if (code == 200) {
+    Serial.println("✅ Device created successfully!");
+    Serial.println("📱 Please connect this device in the app to assign it to a user");
+    http.end();
+    return true;
+  } else {
+    Serial.println("❌ Failed to create device. Code: " + String(code));
+    String response = http.getString();
+    Serial.println("Response: " + response);
+    http.end();
+    return false;
+  }
+}
+
 bool fetchUID() {
   HTTPClient http;
   http.begin(getDeviceURL);
@@ -100,10 +166,18 @@ bool fetchUID() {
     deserializeJson(doc, payload);
     
     if (doc["fields"]["uid"]["stringValue"]) {
-      uid = doc["fields"]["uid"]["stringValue"].as<String>();
-      Serial.println("✅ UID fetched: " + uid);
-      http.end();
-      return true;
+      String fetchedUID = doc["fields"]["uid"]["stringValue"].as<String>();
+      if (fetchedUID.length() > 0) {
+        uid = fetchedUID;
+        Serial.println("✅ UID fetched: " + uid);
+        http.end();
+        return true;
+      } else {
+        Serial.println("⚠️ Device exists but no UID assigned yet");
+        Serial.println("📱 Please connect this device in the app");
+        http.end();
+        return false;
+      }
     }
   }
   
@@ -413,6 +487,10 @@ void setup() {
   getDeviceURL = "https://firestore.googleapis.com/v1/projects/" + projectId +
                  "/databases/(default)/documents/" + devicesCollection + "/" + deviceID + "?key=" + API_KEY;
   
+  createDeviceURL = "https://firestore.googleapis.com/v1/projects/" + projectId +
+                   "/databases/(default)/documents/" + devicesCollection +
+                   "?documentId=" + deviceID + "&key=" + API_KEY;
+  
   getPrescriptionsURL = "https://firestore.googleapis.com/v1/projects/" + projectId +
                        "/databases/(default)/documents?collectionId=" + prescriptionsCollection +
                        "&key=" + API_KEY;
@@ -437,8 +515,13 @@ void setup() {
       handleLoop = true;
       
       // Initialize Firestore connection
-      if (fetchUID()) {
-        fetchPrescriptions();
+      if (checkAndCreateDevice()) {
+        if (uid.length() > 0) {
+          fetchPrescriptions();
+        } else {
+          Serial.println("⚠️ Device created but not assigned to user yet");
+          Serial.println("📱 Please connect this device in the app to start using it");
+        }
       }
     } else {
       Serial.println("\n❌ WiFi connection failed! Starting AP mode...");
@@ -460,6 +543,7 @@ void setup() {
   
   Serial.println("🔘 Button pins: Taken=" + String(BUTTON_TAKEN_PIN) + ", Clear=" + String(BUTTON_CLEAR_PIN));
   Serial.println("📡 Internet functionality enabled with AP fallback");
+  Serial.println("🆔 Device ID: " + deviceID);
 }
 
 void loop() {
