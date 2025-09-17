@@ -5,8 +5,8 @@
 #include <HTTPClient.h>
 
 // Firestore Configuration
-const char* API_KEY = "AIzaSyDjXZJU7xgMDqE8h_FlcxR-8kjtQpE73FE";
-String projectId = "streamcamera-a78e7";
+const char* API_KEY = "AIzaSyDyQ5GgcYMzSk2fjrJXAQeFn5NlmIYphp0";
+String projectId = "smart-medicine-eb37a";
 
 // Collections
 String devicesCollection = "devices";
@@ -80,6 +80,7 @@ String getTimeString() {
 
 // === Firestore Functions ===
 bool checkAndCreateDevice() {
+  Serial.println("🔍 Checking if device exists in Firebase...");
   HTTPClient http;
   http.begin(getDeviceURL);
   int code = http.GET();
@@ -95,6 +96,10 @@ bool checkAndCreateDevice() {
       Serial.println("✅ Device found! UID: " + uid);
       http.end();
       return true;
+    } else {
+      Serial.println("⚠️ Device exists but no UID field found");
+      http.end();
+      return false;
     }
   } else if (code == 404) {
     // Device doesn't exist, create it
@@ -104,6 +109,8 @@ bool checkAndCreateDevice() {
   }
   
   Serial.println("❌ Failed to check device status. Code: " + String(code));
+  String response = http.getString();
+  Serial.println("Response: " + response);
   http.end();
   return false;
 }
@@ -177,6 +184,11 @@ bool fetchUID() {
 }
 
 bool fetchPrescriptions() {
+  if (uid.length() == 0) {
+    Serial.println("⚠️ No UID available, cannot fetch prescriptions");
+    return false;
+  }
+  
   HTTPClient http;
   http.begin(getPrescriptionsURL);
   int code = http.GET();
@@ -195,8 +207,13 @@ bool fetchPrescriptions() {
         
         JsonObject fields = document["fields"];
         
-        // Check if this prescription is for our device
-        if (fields["deviceId"]["stringValue"].as<String>() != deviceID) continue;
+        // Check if this prescription is for our UID and device
+        String prescriptionUID = fields["uid"]["stringValue"].as<String>();
+        String prescriptionDeviceId = fields["deviceId"]["stringValue"].as<String>();
+        
+        if (prescriptionUID != uid || prescriptionDeviceId != deviceID) {
+          continue;
+        }
         
         prescriptions[prescriptionCount].id = document["name"].as<String>();
         prescriptions[prescriptionCount].medicineName = fields["medicineName"]["stringValue"].as<String>();
@@ -216,15 +233,17 @@ bool fetchPrescriptions() {
         prescriptions[prescriptionCount].selectedDays = selectedDays;
         
         prescriptionCount++;
+        Serial.println("📋 Found prescription: " + prescriptions[prescriptionCount-1].medicineName + 
+                      " for " + prescriptions[prescriptionCount-1].timeSlot);
       }
     }
     
-    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions");
+    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions for UID: " + uid);
     http.end();
     return true;
   }
   
-  Serial.println("❌ Failed to fetch prescriptions");
+  Serial.println("❌ Failed to fetch prescriptions. Code: " + String(code));
   http.end();
   return false;
 }
@@ -272,7 +291,14 @@ void markAllMedicinesForTimeSlot(String timeSlot) {
   String currentDay = getCurrentDay();
   int markedCount = 0;
   
+  Serial.println("🔍 Looking for medicines for " + currentDay + " " + timeSlot + "...");
+  Serial.println("📊 Total prescriptions loaded: " + String(prescriptionCount));
+  
   for (int i = 0; i < prescriptionCount; i++) {
+    Serial.println("💊 Checking: " + prescriptions[i].medicineName + 
+                  " | Days: " + prescriptions[i].selectedDays + 
+                  " | TimeSlot: " + prescriptions[i].timeSlot);
+    
     // Check if this prescription is for today and this time slot
     if (prescriptions[i].selectedDays.indexOf(currentDay) != -1 && 
         prescriptions[i].timeSlot == timeSlot) {
@@ -282,9 +308,12 @@ void markAllMedicinesForTimeSlot(String timeSlot) {
       
       // Only mark if not already marked
       if (!alreadyAlerted[i][dayIndex][timeSlotIndex]) {
+        Serial.println("✅ Marking: " + prescriptions[i].medicineName);
         markMedicineTaken(prescriptions[i].id, currentDay, timeSlot);
         alreadyAlerted[i][dayIndex][timeSlotIndex] = true;
         markedCount++;
+      } else {
+        Serial.println("⚠️ Already marked: " + prescriptions[i].medicineName);
       }
     }
   }
