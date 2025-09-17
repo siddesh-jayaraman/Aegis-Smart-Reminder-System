@@ -33,13 +33,16 @@ bool handleLoop = false;
 String deviceID;
 String uid = "";
 
-// Physical button
-#define BUTTON_PIN            2
+// Physical buttons
+#define BUTTON_TAKEN_PIN      17  // TX2 pin
+#define BUTTON_CLEAR_PIN      2   // D2 pin for EEPROM clear
 #define LED_PIN               13
 
 // Button states
-bool buttonPressed = false;
+bool buttonTakenPressed = false;
+bool buttonClearPressed = false;
 unsigned long lastButtonPress = 0;
+unsigned long lastClearPress = 0;
 
 // Medicine tracking
 struct Prescription {
@@ -226,24 +229,66 @@ void markAllMedicinesForTimeSlot(String timeSlot) {
 }
 
 // === Button Handling ===
-void checkButton() {
-  // Check single button press
-  if (digitalRead(BUTTON_PIN) == LOW && !buttonPressed) {
-    buttonPressed = true;
+void checkButtons() {
+  // Check EEPROM clear button (hold for 3 seconds)
+  if (digitalRead(BUTTON_CLEAR_PIN) == LOW && !buttonClearPressed) {
+    buttonClearPressed = true;
+    lastClearPress = millis();
+    Serial.println("🔘 Clear button pressed - hold for 3 seconds to clear EEPROM");
+  } else if (digitalRead(BUTTON_CLEAR_PIN) == LOW && buttonClearPressed) {
+    if (millis() - lastClearPress > 3000) {  // 3 seconds
+      Serial.println("🗑️ Clearing EEPROM...");
+      clearEEPROM();
+      buttonClearPressed = false;
+    }
+  } else if (digitalRead(BUTTON_CLEAR_PIN) == HIGH && buttonClearPressed) {
+    buttonClearPressed = false;
+  }
+  
+  // Check medicine taken button
+  if (digitalRead(BUTTON_TAKEN_PIN) == LOW && !buttonTakenPressed) {
+    buttonTakenPressed = true;
     lastButtonPress = millis();
     
     // Get current time slot automatically
     String currentTimeSlot = getCurrentTimeSlot();
     String currentDay = getCurrentDay();
     
-    Serial.println("🔘 Button pressed! Time slot: " + currentTimeSlot + " (" + currentDay + ")");
+    Serial.println("🔘 Medicine taken button pressed! Time slot: " + currentTimeSlot + " (" + currentDay + ")");
     
     // Mark all medicines for current time slot
     markAllMedicinesForTimeSlot(currentTimeSlot);
     
-  } else if (digitalRead(BUTTON_PIN) == HIGH && buttonPressed) {
-    buttonPressed = false;
+  } else if (digitalRead(BUTTON_TAKEN_PIN) == HIGH && buttonTakenPressed) {
+    buttonTakenPressed = false;
   }
+}
+
+// Clear EEPROM function
+void clearEEPROM() {
+  for (int i = 0; i < EEPROM_SIZE; i++) {
+    EEPROM.write(i, 0);
+  }
+  EEPROM.commit();
+  Serial.println("✅ EEPROM cleared! Restarting...");
+  delay(2000);
+  ESP.restart();
+}
+
+// Start AP mode for WiFi configuration
+void startAPMode() {
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("ESP32-Medicine-Tracker", "12345678");
+  IPAddress IP = WiFi.softAPIP();
+  Serial.println("📡 AP Mode started!");
+  Serial.println("SSID: ESP32-Medicine-Tracker");
+  Serial.println("Password: 12345678");
+  Serial.println("IP: " + IP.toString());
+  Serial.println("Connect to configure WiFi");
+  
+  server.on("/", handleRoot);
+  server.on("/save", handleSave);
+  server.begin();
 }
 
 // === Medicine Reminder Logic ===
@@ -348,7 +393,8 @@ void setup() {
   if (rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   // Setup pins
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_TAKEN_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_CLEAR_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -376,23 +422,31 @@ void setup() {
                           "?documentId=" + String(millis()) + "&key=" + API_KEY;
 
   if (ssid.length()) {
+    Serial.println("🌐 Connecting to WiFi: " + ssid);
     WiFi.begin(ssid.c_str(), pass.c_str());
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500); Serial.print(".");
-    }
-    Serial.printf("\nConnected! IP: %s\n", WiFi.localIP().toString().c_str());
-    handleLoop = true;
     
-    // Initialize Firestore connection
-    if (fetchUID()) {
-      fetchPrescriptions();
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+      delay(500); 
+      Serial.print(".");
+      attempts++;
+    }
+    
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.printf("\n✅ Connected! IP: %s\n", WiFi.localIP().toString().c_str());
+      handleLoop = true;
+      
+      // Initialize Firestore connection
+      if (fetchUID()) {
+        fetchPrescriptions();
+      }
+    } else {
+      Serial.println("\n❌ WiFi connection failed! Starting AP mode...");
+      startAPMode();
     }
   } else {
-    WiFi.softAP("ESP32-Reminder", "12345678");
-    Serial.println("AP mode. Connect to: ESP32-Reminder");
-    server.on("/", handleRoot);
-    server.on("/save", handleSave);
-    server.begin();
+    Serial.println("📡 No WiFi credentials found. Starting AP mode...");
+    startAPMode();
   }
 
   // Initialize alert tracking
@@ -404,7 +458,8 @@ void setup() {
     }
   }
   
-  Serial.println("🔘 Button pin: " + String(BUTTON_PIN) + " (Auto-detects time slot)");
+  Serial.println("🔘 Button pins: Taken=" + String(BUTTON_TAKEN_PIN) + ", Clear=" + String(BUTTON_CLEAR_PIN));
+  Serial.println("📡 Internet functionality enabled with AP fallback");
 }
 
 void loop() {
@@ -418,8 +473,8 @@ void loop() {
       }
     }
     
-    // Check for button press
-    checkButton();
+    // Check for button presses
+    checkButtons();
     
     // Check for automatic reminders
     checkReminder();
