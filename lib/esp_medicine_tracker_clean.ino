@@ -275,57 +275,65 @@ bool fetchPrescriptions() {
 
 
 void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
-  // Generate unique document ID
+  // Build a unique doc id (keep your approach)
   String documentId = String(millis()) + "_" + String(random(1000, 9999));
+
+  // Firestore "create with custom id" endpoint
   String url = "https://firestore.googleapis.com/v1/projects/" + projectId +
                "/databases/(default)/documents/" + medicineTakenCollection +
-               "/" + documentId + "?key=" + API_KEY;
-  
+               "?documentId=" + documentId + "&key=" + API_KEY;
+
   Serial.println("📝 Creating medicine taken record: " + documentId);
   Serial.println("🔗 URL: " + url);
-  
+
+  // Build RFC3339 UTC timestamp: YYYY-MM-DDTHH:MM:SSZ
+  DateTime now = rtc.now(); // assumes your RTC is set to UTC (recommended)
+  char ts[25];
+  snprintf(ts, sizeof(ts), "%04d-%02d-%02dT%02d:%02d:%02dZ",
+           now.year(), now.month(), now.day(),
+           now.hour(), now.minute(), now.second());
+  String timestamp = String(ts);
+
   HTTPClient http;
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
-  
+
+  // Build Firestore document body
   StaticJsonDocument<512> doc;
-  auto fields = doc.createNestedObject("fields");
-  
-  // Generate unique ID
+  JsonObject fields = doc.createNestedObject("fields");
+
+  // Your custom fields
   String takenId = String(millis()) + "_" + prescriptionId;
-  fields["id"]["stringValue"] = takenId;
+  fields["id"]["stringValue"]             = takenId;
   fields["prescriptionId"]["stringValue"] = prescriptionId;
-  fields["deviceId"]["stringValue"] = deviceID;
-  fields["uid"]["stringValue"] = uid;
-  fields["day"]["stringValue"] = day;
-  fields["timeSlot"]["stringValue"] = timeSlot;
-  
-  // Current timestamp in proper Firestore format
-  String timestamp = rtc.now().timestamp(DateTime::TIMESTAMP_FULL);
+  fields["deviceId"]["stringValue"]       = deviceID;
+  fields["uid"]["stringValue"]            = uid;
+  fields["day"]["stringValue"]            = day;
+  fields["timeSlot"]["stringValue"]       = timeSlot;
+
+  // Proper Firestore timestamp
   fields["takenAt"]["timestampValue"] = timestamp;
-  
+
   String body;
   serializeJson(doc, body);
-  
   Serial.println("📤 Request body: " + body);
-  
-  int code = http.PUT(body);  // Use PUT for creating document with specific ID
-  
-  if (code == 200) {
+
+  // Create (POST) the document
+  int code = http.POST(body);
+
+  if (code == 200 || code == 201) {
     Serial.println("✅ Medicine marked as taken: " + prescriptionId);
     Serial.println("📅 Day: " + day + " | Time Slot: " + timeSlot);
-    // Blink LED to confirm
     digitalWrite(LED_PIN, HIGH);
     delay(200);
     digitalWrite(LED_PIN, LOW);
   } else {
     Serial.println("❌ Failed to mark medicine taken. Code: " + String(code));
-    String response = http.getString();
-    Serial.println("Response: " + response);
+    Serial.println("Response: " + http.getString());
   }
-  
   http.end();
 }
+
 
 // Mark all medicines for a specific time slot
 void markAllMedicinesForTimeSlot(String timeSlot) {
