@@ -17,8 +17,8 @@ String medicineTakenCollection = "medicine_taken";
 String getDeviceURL, createDeviceURL, getPrescriptionsURL, createMedicineTakenURL;
 
 // WiFi credentials - Static values
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID = "raghu";
+const char* WIFI_PASSWORD = "12345678";
 
 RTC_DS3231 rtc;
 
@@ -195,38 +195,91 @@ bool fetchPrescriptions() {
   Serial.println("🔍 Fetching prescriptions for UID: " + uid + " and Device: " + deviceID);
   HTTPClient http;
   http.begin(getPrescriptionsURL);
-  int code = http.GET();
+  http.addHeader("Content-Type", "application/json");
+  
+  // Create Firestore query to get all prescriptions
+  StaticJsonDocument<512> queryDoc;
+  auto structuredQuery = queryDoc.createNestedObject("structuredQuery");
+  structuredQuery["from"][0]["collectionId"] = prescriptionsCollection;
+  
+  // Add where clause to filter by uid and deviceId
+  auto whereClause = structuredQuery.createNestedObject("where");
+  auto compositeFilter = whereClause.createNestedObject("compositeFilter");
+  compositeFilter["op"] = "AND";
+  
+  auto filters = compositeFilter.createNestedArray("filters");
+  
+  // Filter by uid
+  auto uidFilter = filters.createNestedObject();
+  auto uidFieldFilter = uidFilter.createNestedObject("fieldFilter");
+  auto uidField = uidFieldFilter.createNestedObject("field");
+  uidField["fieldPath"] = "uid";
+  uidFieldFilter["op"] = "EQUAL";
+  auto uidValue = uidFieldFilter.createNestedObject("value");
+  uidValue["stringValue"] = uid;
+  
+  // Filter by deviceId
+  auto deviceFilter = filters.createNestedObject();
+  auto deviceFieldFilter = deviceFilter.createNestedObject("fieldFilter");
+  auto deviceField = deviceFieldFilter.createNestedObject("field");
+  deviceField["fieldPath"] = "deviceId";
+  deviceFieldFilter["op"] = "EQUAL";
+  auto deviceValue = deviceFieldFilter.createNestedObject("value");
+  deviceValue["stringValue"] = deviceID;
+  
+  String queryBody;
+  serializeJson(queryDoc, queryBody);
+  
+  Serial.println("📤 Query: " + queryBody);
+  
+  int code = http.POST(queryBody);
   
   if (code == 200) {
     String payload = http.getString();
+    Serial.println("📥 Response: " + payload);
+    
     StaticJsonDocument<2048> doc;
     deserializeJson(doc, payload);
     
     prescriptionCount = 0;
-    int totalDocuments = 0;
     
-    if (doc["documents"]) {
+    if (doc["document"]) {
+      // Single document response
+      JsonObject document = doc["document"];
+      if (prescriptionCount < 20) {
+        JsonObject fields = document["fields"];
+        
+        prescriptions[prescriptionCount].id = document["name"].as<String>();
+        prescriptions[prescriptionCount].medicineName = fields["medicineName"]["stringValue"].as<String>();
+        prescriptions[prescriptionCount].time = fields["time"]["stringValue"].as<String>();
+        prescriptions[prescriptionCount].timeSlot = fields["timeSlot"]["stringValue"].as<String>();
+        prescriptions[prescriptionCount].doseQuantity = fields["doseQuantity"]["integerValue"].as<int>();
+        
+        // Parse selected days
+        String selectedDays = "";
+        if (fields["selectedDays"]["arrayValue"]["values"]) {
+          JsonArray days = fields["selectedDays"]["arrayValue"]["values"];
+          for (JsonVariant day : days) {
+            if (selectedDays.length() > 0) selectedDays += ",";
+            selectedDays += day["stringValue"].as<String>();
+          }
+        }
+        prescriptions[prescriptionCount].selectedDays = selectedDays;
+        
+        prescriptionCount++;
+        Serial.println("✅ Added prescription: " + prescriptions[prescriptionCount-1].medicineName + 
+                      " for " + prescriptions[prescriptionCount-1].timeSlot + 
+                      " on days: " + prescriptions[prescriptionCount-1].selectedDays);
+      }
+    } else if (doc["documents"]) {
+      // Multiple documents response
       JsonArray documents = doc["documents"];
-      totalDocuments = documents.size();
-      Serial.println("📊 Total documents in prescriptions collection: " + String(totalDocuments));
+      Serial.println("📊 Found " + String(documents.size()) + " prescriptions");
       
       for (JsonObject document : documents) {
         if (prescriptionCount >= 20) break;
         
         JsonObject fields = document["fields"];
-        
-        // Check if this prescription is for our UID and device
-        String prescriptionUID = fields["uid"]["stringValue"].as<String>();
-        String prescriptionDeviceId = fields["deviceId"]["stringValue"].as<String>();
-        
-        Serial.println("🔍 Checking prescription - UID: " + prescriptionUID + 
-                      " | Device: " + prescriptionDeviceId + 
-                      " | Medicine: " + fields["medicineName"]["stringValue"].as<String>());
-        
-        if (prescriptionUID != uid || prescriptionDeviceId != deviceID) {
-          Serial.println("❌ Skipping - UID or Device mismatch");
-          continue;
-        }
         
         prescriptions[prescriptionCount].id = document["name"].as<String>();
         prescriptions[prescriptionCount].medicineName = fields["medicineName"]["stringValue"].as<String>();
@@ -254,8 +307,7 @@ bool fetchPrescriptions() {
       Serial.println("⚠️ No documents found in prescriptions collection");
     }
     
-    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions for UID: " + uid + 
-                  " out of " + String(totalDocuments) + " total documents");
+    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions for UID: " + uid);
     http.end();
     return true;
   }
@@ -451,8 +503,7 @@ void setup() {
                    "?documentId=" + deviceID + "&key=" + API_KEY;
   
   getPrescriptionsURL = "https://firestore.googleapis.com/v1/projects/" + projectId +
-                       "/databases/(default)/documents?collectionId=" + prescriptionsCollection +
-                       "&key=" + API_KEY;
+                       "/databases/(default)/documents:runQuery?key=" + API_KEY;
   
   createMedicineTakenURL = "https://firestore.googleapis.com/v1/projects/" + projectId +
                           "/databases/(default)/documents/" + medicineTakenCollection +
