@@ -275,8 +275,17 @@ bool fetchPrescriptions() {
 
 
 void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
+  // Generate unique document ID
+  String documentId = String(millis()) + "_" + String(random(1000, 9999));
+  String url = "https://firestore.googleapis.com/v1/projects/" + projectId +
+               "/databases/(default)/documents/" + medicineTakenCollection +
+               "/" + documentId + "?key=" + API_KEY;
+  
+  Serial.println("📝 Creating medicine taken record: " + documentId);
+  Serial.println("🔗 URL: " + url);
+  
   HTTPClient http;
-  http.begin(createMedicineTakenURL);
+  http.begin(url);
   http.addHeader("Content-Type", "application/json");
   
   StaticJsonDocument<512> doc;
@@ -298,15 +307,21 @@ void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
   String body;
   serializeJson(doc, body);
   
-  int code = http.POST(body);
+  Serial.println("📤 Request body: " + body);
+  
+  int code = http.PUT(body);  // Use PUT for creating document with specific ID
+  
   if (code == 200) {
     Serial.println("✅ Medicine marked as taken: " + prescriptionId);
+    Serial.println("📅 Day: " + day + " | Time Slot: " + timeSlot);
     // Blink LED to confirm
     digitalWrite(LED_PIN, HIGH);
     delay(200);
     digitalWrite(LED_PIN, LOW);
   } else {
-    Serial.println("❌ Failed to mark medicine taken: " + String(code));
+    Serial.println("❌ Failed to mark medicine taken. Code: " + String(code));
+    String response = http.getString();
+    Serial.println("Response: " + response);
   }
   
   http.end();
@@ -462,7 +477,7 @@ void setup() {
   
   createMedicineTakenURL = "https://firestore.googleapis.com/v1/projects/" + projectId +
                           "/databases/(default)/documents/" + medicineTakenCollection +
-                          "?documentId=" + String(millis()) + "&key=" + API_KEY;
+                          "?key=" + API_KEY;
 
   Serial.println("🌐 Connecting to WiFi: " + String(WIFI_SSID));
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
