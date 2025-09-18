@@ -128,8 +128,11 @@ bool createDevice() {
   fields["name"]["stringValue"] = "ESP32 Medicine Tracker";
   fields["type"]["stringValue"] = "medicine_tracker";
   fields["status"]["stringValue"] = "active";
-  fields["createdAt"]["timestampValue"] = String(rtc.now().unixtime()) + "000000";
-  fields["lastSeen"]["timestampValue"] = String(rtc.now().unixtime()) + "000000";
+  
+  // Proper timestamp format for Firestore
+  String timestamp = rtc.now().timestamp(DateTime::TIMESTAMP_FULL);
+  fields["createdAt"]["timestampValue"] = timestamp;
+  fields["lastSeen"]["timestampValue"] = timestamp;
   
   // Note: uid will be set when user connects the device in the app
   fields["uid"]["stringValue"] = "";  // Empty initially
@@ -189,6 +192,7 @@ bool fetchPrescriptions() {
     return false;
   }
   
+  Serial.println("🔍 Fetching prescriptions for UID: " + uid + " and Device: " + deviceID);
   HTTPClient http;
   http.begin(getPrescriptionsURL);
   int code = http.GET();
@@ -199,9 +203,13 @@ bool fetchPrescriptions() {
     deserializeJson(doc, payload);
     
     prescriptionCount = 0;
+    int totalDocuments = 0;
     
     if (doc["documents"]) {
       JsonArray documents = doc["documents"];
+      totalDocuments = documents.size();
+      Serial.println("📊 Total documents in prescriptions collection: " + String(totalDocuments));
+      
       for (JsonObject document : documents) {
         if (prescriptionCount >= 20) break;
         
@@ -211,7 +219,12 @@ bool fetchPrescriptions() {
         String prescriptionUID = fields["uid"]["stringValue"].as<String>();
         String prescriptionDeviceId = fields["deviceId"]["stringValue"].as<String>();
         
+        Serial.println("🔍 Checking prescription - UID: " + prescriptionUID + 
+                      " | Device: " + prescriptionDeviceId + 
+                      " | Medicine: " + fields["medicineName"]["stringValue"].as<String>());
+        
         if (prescriptionUID != uid || prescriptionDeviceId != deviceID) {
+          Serial.println("❌ Skipping - UID or Device mismatch");
           continue;
         }
         
@@ -233,17 +246,23 @@ bool fetchPrescriptions() {
         prescriptions[prescriptionCount].selectedDays = selectedDays;
         
         prescriptionCount++;
-        Serial.println("📋 Found prescription: " + prescriptions[prescriptionCount-1].medicineName + 
-                      " for " + prescriptions[prescriptionCount-1].timeSlot);
+        Serial.println("✅ Added prescription: " + prescriptions[prescriptionCount-1].medicineName + 
+                      " for " + prescriptions[prescriptionCount-1].timeSlot + 
+                      " on days: " + prescriptions[prescriptionCount-1].selectedDays);
       }
+    } else {
+      Serial.println("⚠️ No documents found in prescriptions collection");
     }
     
-    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions for UID: " + uid);
+    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions for UID: " + uid + 
+                  " out of " + String(totalDocuments) + " total documents");
     http.end();
     return true;
   }
   
   Serial.println("❌ Failed to fetch prescriptions. Code: " + String(code));
+  String response = http.getString();
+  Serial.println("Response: " + response);
   http.end();
   return false;
 }
@@ -265,8 +284,8 @@ void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
   fields["day"]["stringValue"] = day;
   fields["timeSlot"]["stringValue"] = timeSlot;
   
-  // Current timestamp
-  String timestamp = String(rtc.now().unixtime()) + "000000";
+  // Current timestamp in proper Firestore format
+  String timestamp = rtc.now().timestamp(DateTime::TIMESTAMP_FULL);
   fields["takenAt"]["timestampValue"] = timestamp;
   
   String body;
@@ -490,10 +509,11 @@ void setup() {
 void loop() {
   if (handleLoop) {
     static unsigned long lastCheck = 0;
-    if (millis() - lastCheck > 300000) {  // Check every 5 minutes
+    if (millis() - lastCheck > 30000) {  // Check every 30 seconds
       lastCheck = millis();
       if (uid.length() > 0) {
-        fetchPrescriptions();  // Refresh prescriptions periodically
+        Serial.println("🔄 Auto-refreshing prescriptions...");
+        fetchPrescriptions();  // Refresh prescriptions every 30 seconds
       }
     }
     
