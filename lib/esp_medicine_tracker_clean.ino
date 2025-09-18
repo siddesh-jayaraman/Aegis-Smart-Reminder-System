@@ -273,6 +273,14 @@ bool fetchPrescriptions() {
   return true;
 }
 
+static inline String extractDocId(const String& resourceName) {
+  int slash = resourceName.lastIndexOf('/');
+  if (slash >= 0 && slash + 1 < resourceName.length()) {
+    return resourceName.substring(slash + 1);
+  }
+  return resourceName; // already just an ID
+}
+
 
 void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
   // Build a unique doc id (keep your approach)
@@ -303,9 +311,8 @@ void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
   JsonObject fields = doc.createNestedObject("fields");
 
   // Your custom fields
-  String takenId = String(millis()) + "_" + prescriptionId;
-  fields["id"]["stringValue"]             = takenId;
-  fields["prescriptionId"]["stringValue"] = prescriptionId;
+  String plainPid = extractDocId(prescriptionId);
+  fields["prescriptionId"]["stringValue"] = plainPid;
   fields["deviceId"]["stringValue"]       = deviceID;
   fields["uid"]["stringValue"]            = uid;
   fields["day"]["stringValue"]            = day;
