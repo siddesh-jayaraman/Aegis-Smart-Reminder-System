@@ -191,133 +191,88 @@ bool fetchPrescriptions() {
     Serial.println("⚠️ No UID available, cannot fetch prescriptions");
     return false;
   }
-  
-  Serial.println("🔍 Fetching prescriptions for UID: " + uid + " and Device: " + deviceID);
+
+  Serial.println("🔍 Fetching prescriptions for UID: " + uid);
+
   HTTPClient http;
   http.begin(getPrescriptionsURL);
   http.addHeader("Content-Type", "application/json");
-  
-  // Create Firestore query to get all prescriptions
+
+  // Build Firestore structured query
   StaticJsonDocument<512> queryDoc;
   auto structuredQuery = queryDoc.createNestedObject("structuredQuery");
   structuredQuery["from"][0]["collectionId"] = prescriptionsCollection;
-  
-  // Add where clause to filter by uid and deviceId
+
   auto whereClause = structuredQuery.createNestedObject("where");
-  auto compositeFilter = whereClause.createNestedObject("compositeFilter");
-  compositeFilter["op"] = "AND";
-  
-  auto filters = compositeFilter.createNestedArray("filters");
-  
-  // Filter by uid
-  auto uidFilter = filters.createNestedObject();
-  auto uidFieldFilter = uidFilter.createNestedObject("fieldFilter");
-  auto uidField = uidFieldFilter.createNestedObject("field");
-  uidField["fieldPath"] = "uid";
-  uidFieldFilter["op"] = "EQUAL";
-  auto uidValue = uidFieldFilter.createNestedObject("value");
-  uidValue["stringValue"] = uid;
-  
-  // Filter by deviceId
-  auto deviceFilter = filters.createNestedObject();
-  auto deviceFieldFilter = deviceFilter.createNestedObject("fieldFilter");
-  auto deviceField = deviceFieldFilter.createNestedObject("field");
-  deviceField["fieldPath"] = "deviceId";
-  deviceFieldFilter["op"] = "EQUAL";
-  auto deviceValue = deviceFieldFilter.createNestedObject("value");
-  deviceValue["stringValue"] = deviceID;
-  
+  auto filter = whereClause.createNestedObject("fieldFilter");
+  filter["field"]["fieldPath"] = "uid";
+  filter["op"] = "EQUAL";
+  filter["value"]["stringValue"] = uid;
+
   String queryBody;
   serializeJson(queryDoc, queryBody);
-  
+
   Serial.println("📤 Query: " + queryBody);
-  
+
   int code = http.POST(queryBody);
-  
-  if (code == 200) {
-    String payload = http.getString();
-    Serial.println("📥 Response: " + payload);
-    
-    StaticJsonDocument<2048> doc;
-    deserializeJson(doc, payload);
-    
-    prescriptionCount = 0;
-    
-    if (doc["document"]) {
-      // Single document response
-      JsonObject document = doc["document"];
-      if (prescriptionCount < 20) {
-        JsonObject fields = document["fields"];
-        
-        prescriptions[prescriptionCount].id = document["name"].as<String>();
-        prescriptions[prescriptionCount].medicineName = fields["medicineName"]["stringValue"].as<String>();
-        prescriptions[prescriptionCount].time = fields["time"]["stringValue"].as<String>();
-        prescriptions[prescriptionCount].timeSlot = fields["timeSlot"]["stringValue"].as<String>();
-        prescriptions[prescriptionCount].doseQuantity = fields["doseQuantity"]["integerValue"].as<int>();
-        
-        // Parse selected days
-        String selectedDays = "";
-        if (fields["selectedDays"]["arrayValue"]["values"]) {
-          JsonArray days = fields["selectedDays"]["arrayValue"]["values"];
-          for (JsonVariant day : days) {
-            if (selectedDays.length() > 0) selectedDays += ",";
-            selectedDays += day["stringValue"].as<String>();
-          }
-        }
-        prescriptions[prescriptionCount].selectedDays = selectedDays;
-        
-        prescriptionCount++;
-        Serial.println("✅ Added prescription: " + prescriptions[prescriptionCount-1].medicineName + 
-                      " for " + prescriptions[prescriptionCount-1].timeSlot + 
-                      " on days: " + prescriptions[prescriptionCount-1].selectedDays);
-      }
-    } else if (doc["documents"]) {
-      // Multiple documents response
-      JsonArray documents = doc["documents"];
-      Serial.println("📊 Found " + String(documents.size()) + " prescriptions");
-      
-      for (JsonObject document : documents) {
-        if (prescriptionCount >= 20) break;
-        
-        JsonObject fields = document["fields"];
-        
-        prescriptions[prescriptionCount].id = document["name"].as<String>();
-        prescriptions[prescriptionCount].medicineName = fields["medicineName"]["stringValue"].as<String>();
-        prescriptions[prescriptionCount].time = fields["time"]["stringValue"].as<String>();
-        prescriptions[prescriptionCount].timeSlot = fields["timeSlot"]["stringValue"].as<String>();
-        prescriptions[prescriptionCount].doseQuantity = fields["doseQuantity"]["integerValue"].as<int>();
-        
-        // Parse selected days
-        String selectedDays = "";
-        if (fields["selectedDays"]["arrayValue"]["values"]) {
-          JsonArray days = fields["selectedDays"]["arrayValue"]["values"];
-          for (JsonVariant day : days) {
-            if (selectedDays.length() > 0) selectedDays += ",";
-            selectedDays += day["stringValue"].as<String>();
-          }
-        }
-        prescriptions[prescriptionCount].selectedDays = selectedDays;
-        
-        prescriptionCount++;
-        Serial.println("✅ Added prescription: " + prescriptions[prescriptionCount-1].medicineName + 
-                      " for " + prescriptions[prescriptionCount-1].timeSlot + 
-                      " on days: " + prescriptions[prescriptionCount-1].selectedDays);
-      }
-    } else {
-      Serial.println("⚠️ No documents found in prescriptions collection");
-    }
-    
-    Serial.println("✅ Fetched " + String(prescriptionCount) + " prescriptions for UID: " + uid);
+  if (code != 200) {
+    Serial.println("❌ Failed to fetch prescriptions. Code: " + String(code));
+    Serial.println(http.getString());
     http.end();
-    return true;
+    return false;
   }
-  
-  Serial.println("❌ Failed to fetch prescriptions. Code: " + String(code));
-  String response = http.getString();
-  Serial.println("Response: " + response);
+
+  // Parse response
+  String payload = http.getString();
+  Serial.println("📥 Response: " + payload);
+
+  StaticJsonDocument<4096> doc;  // increase if needed
+  DeserializationError err = deserializeJson(doc, payload);
+  if (err) {
+    Serial.println("❌ JSON parse failed: " + String(err.c_str()));
+    http.end();
+    return false;
+  }
+
+  prescriptionCount = 0;
+
+  // Firestore runQuery returns an array of results
+  for (JsonObject result : doc.as<JsonArray>()) {
+    if (!result.containsKey("document")) continue;
+
+    JsonObject document = result["document"];
+    JsonObject fields = document["fields"];
+
+    if (prescriptionCount >= 20) break;
+
+    prescriptions[prescriptionCount].id = document["name"].as<String>();
+    prescriptions[prescriptionCount].medicineName = fields["medicineName"]["stringValue"].as<String>();
+    prescriptions[prescriptionCount].time = fields["time"]["stringValue"].as<String>();
+    prescriptions[prescriptionCount].timeSlot = fields["timeSlot"]["stringValue"].as<String>();
+    prescriptions[prescriptionCount].doseQuantity = fields["doseQuantity"]["integerValue"].as<int>();
+
+    // Parse selectedDays array
+    String selectedDays = "";
+    if (fields["selectedDays"]["arrayValue"]["values"]) {
+      for (JsonVariant day : fields["selectedDays"]["arrayValue"]["values"].as<JsonArray>()) {
+        if (selectedDays.length() > 0) selectedDays += ",";
+        selectedDays += day["stringValue"].as<String>();
+      }
+    }
+    prescriptions[prescriptionCount].selectedDays = selectedDays;
+
+    Serial.println("✅ Added prescription: " + prescriptions[prescriptionCount].medicineName +
+                   " at " + prescriptions[prescriptionCount].timeSlot +
+                   " (Days: " + prescriptions[prescriptionCount].selectedDays + ")");
+
+    prescriptionCount++;
+  }
+
+  Serial.println("📊 Total prescriptions fetched: " + String(prescriptionCount));
   http.end();
-  return false;
+  return true;
 }
+
 
 void markMedicineTaken(String prescriptionId, String day, String timeSlot) {
   HTTPClient http;
