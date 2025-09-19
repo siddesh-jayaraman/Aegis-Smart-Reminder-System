@@ -17,7 +17,7 @@ Future<void> main() async {
   await AppTheme.loadSettings();
 
   // Initialize notification service
-  await NotificationService.initialize();
+  // await NotificationService.initialize();
 
   runApp(
     MultiProvider(

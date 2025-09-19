@@ -87,9 +87,9 @@ class MedicineTaken {
     };
   }
 
-  factory MedicineTaken.fromJson(Map<String, dynamic> json) {
+  factory MedicineTaken.fromJson(String id, Map<String, dynamic> json) {
     return MedicineTaken(
-      id: json['id'],
+      id: id,
       prescriptionId: json['prescriptionId'],
       deviceId: json['deviceId'],
       uid: json['uid'],
@@ -201,7 +201,7 @@ class ScheduleProvider extends ChangeNotifier {
         .snapshots()
         .listen((snapshot) {
           _medicineTaken = snapshot.docs
-              .map((doc) => MedicineTaken.fromJson(doc.data()))
+              .map((doc) => MedicineTaken.fromJson(doc.id, doc.data()))
               .toList();
           notifyListeners();
         });
@@ -228,7 +228,7 @@ class ScheduleProvider extends ChangeNotifier {
           .get();
 
       _medicineTaken = querySnapshot.docs
-          .map((doc) => MedicineTaken.fromJson(doc.data()))
+          .map((doc) => MedicineTaken.fromJson(doc.id, doc.data()))
           .toList();
     } catch (e) {
       print('Error loading medicine taken: $e');
