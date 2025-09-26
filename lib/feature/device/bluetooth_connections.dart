@@ -139,7 +139,7 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
         _connectedDevice = device;
       });
 
-      await device.connect();
+      await device.connect(license: License.free);
       await _discoverServices(device);
 
       _updateConnectionState(
@@ -374,15 +374,15 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          FirebaseFirestore.instance.collection('devices').add({
-            "uid": FirebaseAuth.instance.currentUser!.uid,
-            "name": "PillBox-2",
-            "createdAt": Timestamp.now(),
-          });
-        },
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     FirebaseFirestore.instance.collection('devices').add({
+      //       "uid": FirebaseAuth.instance.currentUser!.uid,
+      //       "name": "PillBox-2",
+      //       "createdAt": Timestamp.now(),
+      //     });
+      //   },
+      // ),
       appBar: AppBar(
         title: const Text('WiFi Setup via Bluetooth'),
         backgroundColor: Colors.blue.shade700,
@@ -721,6 +721,14 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
                         .update({
                           "uid": FirebaseAuth.instance.currentUser!.uid,
                         });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('No device fetched from the bluetooth'),
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
                   }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
