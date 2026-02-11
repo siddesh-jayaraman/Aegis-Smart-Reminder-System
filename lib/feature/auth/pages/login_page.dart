@@ -1,4 +1,5 @@
 import 'package:aegis_smart_medicine_reminder_system/feature/auth/provider/auth_provider.dart';
+import 'package:aegis_smart_medicine_reminder_system/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart'; // <-- added for mouse support
 import 'package:provider/provider.dart';
@@ -18,8 +19,6 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  bool _isDarkMode = false;
-  double _volume = 0.5;
 
   @override
   void dispose() {
@@ -53,83 +52,16 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _showSettingsDialog() {
-    print('Settings dialog called!');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings button clicked!'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Settings'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.volume_up),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Slider(
-                      value: _volume,
-                      onChanged: (value) {
-                        setState(() {
-                          _volume = value;
-                        });
-                      },
-                      activeColor: const Color(0xFF1565C0),
-                    ),
-                  ),
-                  Text('${(_volume * 100).round()}%'),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode),
-                  const SizedBox(width: 16),
-                  const Text('Dark Mode'),
-                  const Spacer(),
-                  Switch(
-                    value: _isDarkMode,
-                    onChanged: (value) {
-                      setState(() {
-                        _isDarkMode = value;
-                      });
-                    },
-                    activeColor: const Color(0xFF1565C0),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = AppTheme.isDarkMode;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: _isDarkMode
+            colors: isDarkMode
                 ? [const Color(0xFF0D47A1), const Color(0xFF002171)]
                 : [const Color(0xFF1565C0), const Color(0xFF0D47A1)],
           ),
@@ -137,6 +69,30 @@ class _LoginPageState extends State<LoginPage> {
         child: SafeArea(
           child: Stack(
             children: [
+              Positioned(
+                top: -40,
+                right: -20,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -30,
+                left: -10,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
               // Main Content
               Center(
                 child: SingleChildScrollView(
@@ -190,8 +146,11 @@ class _LoginPageState extends State<LoginPage> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withOpacity(0.95),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.6),
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.1),

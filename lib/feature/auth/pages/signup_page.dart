@@ -1,7 +1,7 @@
 import 'package:aegis_smart_medicine_reminder_system/feature/auth/provider/auth_provider.dart';
 import 'package:aegis_smart_medicine_reminder_system/feature/home/pages/home_screen.dart';
+import 'package:aegis_smart_medicine_reminder_system/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
@@ -20,8 +20,6 @@ class _SignupPageState extends State<SignupPage> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
-  bool _isDarkMode = false;
-  double _volume = 0.5;
 
   @override
   void dispose() {
@@ -63,86 +61,16 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  void _showSettingsDialog() {
-    print('Settings dialog called!'); // Debug print
-
-    // First show a simple snackbar to test if the function is called
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings button clicked!'),
-        duration: Duration(seconds: 1),
-      ),
-    );
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Settings'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Volume Control
-              Row(
-                children: [
-                  const Icon(Icons.volume_up),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Slider(
-                      value: _volume,
-                      onChanged: (value) {
-                        setState(() {
-                          _volume = value;
-                        });
-                      },
-                      activeColor: const Color(0xFF1565C0),
-                    ),
-                  ),
-                  Text('${(_volume * 100).round()}%'),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Dark Mode Toggle
-              Row(
-                children: [
-                  Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode),
-                  const SizedBox(width: 16),
-                  const Text('Dark Mode'),
-                  const Spacer(),
-                  Switch(
-                    value: _isDarkMode,
-                    onChanged: (value) {
-                      setState(() {
-                        _isDarkMode = value;
-                      });
-                    },
-                    activeColor: const Color(0xFF1565C0),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = AppTheme.isDarkMode;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: _isDarkMode
+            colors: isDarkMode
                 ? [
                     const Color(0xFF0D47A1), // Very dark blue
                     const Color(0xFF002171), // Darkest blue
@@ -156,31 +84,27 @@ class _SignupPageState extends State<SignupPage> {
         child: SafeArea(
           child: Stack(
             children: [
-              // Settings Button
               Positioned(
-                top: 16,
-                left: 16,
-                child: GestureDetector(
-                  onTap: () {
-                    print('Settings tapped!');
-                    _showSettingsDialog();
-                  },
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.4),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.settings,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+                top: -40,
+                right: -20,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -30,
+                left: -10,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ),
@@ -242,8 +166,11 @@ class _SignupPageState extends State<SignupPage> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withOpacity(0.95),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.6),
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.1),

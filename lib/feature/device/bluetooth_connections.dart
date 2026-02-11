@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:aegis_smart_medicine_reminder_system/core/theme/app_theme.dart';
 
 enum BluetoothConnectionState {
   disconnected,
@@ -374,56 +375,71 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     FirebaseFirestore.instance.collection('devices').add({
-      //       "uid": FirebaseAuth.instance.currentUser!.uid,
-      //       "name": "PillBox-2",
-      //       "createdAt": Timestamp.now(),
-      //     });
-      //   },
-      // ),
       appBar: AppBar(
-        title: const Text('WiFi Setup via Bluetooth'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        title: const Text('Bluetooth Setup'),
+        centerTitle: true,
         elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildConnectionSection(),
-            const SizedBox(height: 24),
-            _buildWiFiCredentialsSection(),
-            const SizedBox(height: 24),
-            _buildDataSection(),
-          ],
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppTheme.gradientColors,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Connect your device and send WiFi credentials',
+                  style: TextStyle(
+                    fontFamily: 'CalSans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildConnectionSection(),
+                const SizedBox(height: 20),
+                _buildWiFiCredentialsSection(),
+                const SizedBox(height: 20),
+                _buildDataSection(),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildConnectionSection() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Bluetooth Connection',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+    final statusColor = _getStatusColor();
 
-            // Status indicator
-            Row(
+    return _sectionCard(
+      title: 'Bluetooth Connection',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: statusColor.withOpacity(0.4)),
+            ),
+            child: Row(
               children: [
-                Icon(_getStatusIcon(), color: _getStatusColor(), size: 28),
-                const SizedBox(width: 12),
+                Icon(_getStatusIcon(), color: statusColor, size: 22),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,9 +447,11 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
                       Text(
                         _connectionState.name.toUpperCase(),
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: _getStatusColor(),
+                          fontFamily: 'CalSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: statusColor,
+                          letterSpacing: 0.8,
                         ),
                       ),
                       if (_statusMessage.isNotEmpty) ...[
@@ -441,8 +459,9 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
                         Text(
                           _statusMessage,
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
+                            fontFamily: 'CalSans',
+                            fontSize: 12,
+                            color: AppTheme.textColor.withOpacity(0.7),
                           ),
                         ),
                       ],
@@ -451,304 +470,328 @@ class _BluetoothConnectionPageState extends State<BluetoothConnectionPage> {
                 ),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            // Connection button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed:
-                    _connectionState == BluetoothConnectionState.scanning ||
-                        _connectionState == BluetoothConnectionState.connecting
-                    ? null
-                    : () {
-                        if (_connectionState ==
-                            BluetoothConnectionState.connected) {
-                          _disconnectDevice();
-                        } else {
-                          _startScanning();
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      _connectionState == BluetoothConnectionState.connected
-                      ? Colors.red.shade600
-                      : Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed:
+                  _connectionState == BluetoothConnectionState.scanning ||
+                          _connectionState ==
+                              BluetoothConnectionState.connecting
+                      ? null
+                      : () {
+                          if (_connectionState ==
+                              BluetoothConnectionState.connected) {
+                            _disconnectDevice();
+                          } else {
+                            _startScanning();
+                          }
+                        },
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    _connectionState == BluetoothConnectionState.connected
+                        ? Colors.red.shade600
+                        : AppTheme.buttonPrimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child:
-                    (_connectionState == BluetoothConnectionState.scanning ||
-                        _connectionState == BluetoothConnectionState.connecting)
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                elevation: 0,
+              ),
+              child:
+                  (_connectionState == BluetoothConnectionState.scanning ||
+                          _connectionState ==
+                              BluetoothConnectionState.connecting)
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _getConnectionButtonText(),
+                              style: const TextStyle(
+                                fontFamily: 'CalSans',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          _getConnectionButtonText(),
+                          style: const TextStyle(
+                            fontFamily: 'CalSans',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
-                          const SizedBox(width: 12),
-                          Text(_getConnectionButtonText()),
-                        ],
-                      )
-                    : Text(
-                        _getConnectionButtonText(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildWiFiCredentialsSection() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'WiFi Credentials',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // SSID Input
-            TextField(
-              controller: _ssidController,
-              enabled: _isFormEnabled(),
-              decoration: InputDecoration(
-                labelText: 'Network Name (SSID)',
-                hintText: 'Enter WiFi network name',
-                prefixIcon: const Icon(Icons.wifi),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: _isFormEnabled() ? null : Colors.grey.shade100,
+    return _sectionCard(
+      title: 'WiFi Credentials',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _ssidController,
+            enabled: _isFormEnabled(),
+            decoration: InputDecoration(
+              labelText: 'Network Name (SSID)',
+              hintText: 'Enter WiFi network name',
+              prefixIcon: const Icon(Icons.wifi),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
+              filled: true,
+              fillColor:
+                  _isFormEnabled() ? null : Colors.grey.shade200.withOpacity(0.5),
             ),
-
-            const SizedBox(height: 16),
-
-            // Password Input
-            TextField(
-              controller: _passwordController,
-              enabled: _isFormEnabled(),
-              obscureText: !_passwordVisible,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                hintText: 'Enter WiFi password',
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: _isFormEnabled()
-                      ? () {
-                          setState(() {
-                            _passwordVisible = !_passwordVisible;
-                          });
-                        }
-                      : null,
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _passwordController,
+            enabled: _isFormEnabled(),
+            obscureText: !_passwordVisible,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              hintText: 'Enter WiFi password',
+              prefixIcon: const Icon(Icons.lock),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _passwordVisible ? Icons.visibility : Icons.visibility_off,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: _isFormEnabled() ? null : Colors.grey.shade100,
+                onPressed: _isFormEnabled()
+                    ? () {
+                        setState(() {
+                          _passwordVisible = !_passwordVisible;
+                        });
+                      }
+                    : null,
               ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor:
+                  _isFormEnabled() ? null : Colors.grey.shade200.withOpacity(0.5),
             ),
-
-            const SizedBox(height: 20),
-
-            // Send button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isSendButtonEnabled() ? _sendWiFiCredentials : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isSendButtonEnabled() ? _sendWiFiCredentials : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: _wifiSetupState == WiFiSetupState.sending
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                elevation: 0,
+              ),
+              child: _wifiSetupState == WiFiSetupState.sending
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
                             ),
                           ),
-                          SizedBox(width: 12),
-                          Text('Sending...'),
-                        ],
-                      )
-                    : const Text(
-                        'Send WiFi Credentials',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
                         ),
+                        SizedBox(width: 12),
+                        Text('Sending...'),
+                      ],
+                    )
+                  : const Text(
+                      'Send WiFi Credentials',
+                      style: TextStyle(
+                        fontFamily: 'CalSans',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
-              ),
+                    ),
             ),
-
-            // Success/Error message
-            if (_wifiSetupState == WiFiSetupState.success) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _statusMessage,
-                        style: TextStyle(
-                          color: Colors.green.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ] else if (_wifiSetupState == WiFiSetupState.failed) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error, color: Colors.red.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _statusMessage,
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          ),
+          if (_wifiSetupState == WiFiSetupState.success) ...[
+            const SizedBox(height: 12),
+            _statusBanner(
+              message: _statusMessage,
+              color: Colors.green,
+              icon: Icons.check_circle,
+            ),
+          ] else if (_wifiSetupState == WiFiSetupState.failed) ...[
+            const SizedBox(height: 12),
+            _statusBanner(
+              message: _statusMessage,
+              color: Colors.red,
+              icon: Icons.error,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildDataSection() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _sectionCard(
+      title: 'Device Data',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.buttonPrimary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.buttonPrimary.withOpacity(0.2),
+              ),
+            ),
+            child: Text(
+              deviceId.isEmpty ? 'No device ID received yet.' : deviceId,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton(
+            onPressed: () async {
+              if (deviceId.isNotEmpty) {
+                final res = await FirebaseFirestore.instance
+                    .collection('devices')
+                    .doc(deviceId)
+                    .get();
 
-          children: [
-            const Text(
-              'Device Data',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Text(
-                deviceId,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                if (deviceId.isNotEmpty) {
-                  final res = await FirebaseFirestore.instance
+                if (res.exists) {
+                  await FirebaseFirestore.instance
                       .collection('devices')
                       .doc(deviceId)
-                      .get();
-
-                  if (res.exists) {
-                    await FirebaseFirestore.instance
-                        .collection('devices')
-                        .doc(deviceId)
-                        .update({
-                          "uid": FirebaseAuth.instance.currentUser!.uid,
-                        });
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('No device fetched from the bluetooth'),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
+                      .update({
+                        "uid": FirebaseAuth.instance.currentUser!.uid,
+                      });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No device fetched from the bluetooth'),
+                      ),
+                    );
+                    Navigator.pop(context);
                   }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('No device fetched from the bluetooth'),
-                    ),
-                  );
                 }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No device fetched from the bluetooth'),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.buttonPrimary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Text('Add this device'),
+              elevation: 0,
             ),
-          ],
+            child: const Text(
+              'Add this device',
+              style: TextStyle(
+                fontFamily: 'CalSans',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({required String title, required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppTheme.buttonPrimary.withOpacity(0.08),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontFamily: 'CalSans',
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _statusBanner({
+    required String message,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontFamily: 'CalSans',
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
