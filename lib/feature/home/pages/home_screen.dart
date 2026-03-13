@@ -330,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              device.name,
+                                              device.name.trim(),
                                               style: TextStyle(
                                                 fontFamily: 'CalSans',
                                                 fontSize: 16,

@@ -925,12 +925,16 @@ class _AddPrescriptionDialogState extends State<AddPrescriptionDialog> {
                                 color: AppTheme.iconColor,
                               ),
                               const SizedBox(width: 12),
-                              Text(
-                                _selectedTime.format(context),
-                                style: TextStyle(
-                                  fontFamily: 'CalSans',
-                                  fontSize: 16,
-                                  color: AppTheme.textColor,
+                              Expanded(
+                                child: Text(
+                                  _selectedTime.format(context),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: 'CalSans',
+                                    fontSize: 16,
+                                    color: AppTheme.textColor,
+                                  ),
                                 ),
                               ),
                             ],
