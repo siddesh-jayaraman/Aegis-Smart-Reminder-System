@@ -1,4 +1,5 @@
 import 'package:aegis_smart_medicine_reminder_system/feature/device/model/device_model.dart';
+import 'package:aegis_smart_medicine_reminder_system/core/widgets/app_logo.dart';
 import 'package:aegis_smart_medicine_reminder_system/feature/home/pages/box_schedule_screen.dart';
 import 'package:aegis_smart_medicine_reminder_system/feature/settings/settings_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -134,10 +135,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    Icons.medical_services,
-                    size: 50,
-                    color: AppTheme.iconColor,
+                  child: AppLogo(
+                    size: 100,
+                    padding: const EdgeInsets.all(14),
+                    backgroundColor: AppTheme.cardColor,
                   ),
                 ),
                 const SizedBox(height: 24),

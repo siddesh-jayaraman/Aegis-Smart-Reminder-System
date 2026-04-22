@@ -1,4 +1,5 @@
 import 'package:aegis_smart_medicine_reminder_system/feature/auth/provider/auth_provider.dart';
+import 'package:aegis_smart_medicine_reminder_system/core/widgets/app_logo.dart';
 import 'package:aegis_smart_medicine_reminder_system/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart'; // <-- added for mouse support
@@ -114,10 +115,10 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.medical_services,
-                          size: 50,
-                          color: Color(0xFF1565C0),
+                        child: const AppLogo(
+                          size: 100,
+                          padding: EdgeInsets.all(14),
+                          backgroundColor: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 32),

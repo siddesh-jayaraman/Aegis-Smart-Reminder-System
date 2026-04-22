@@ -23,10 +23,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -61,9 +58,19 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDyQ5GgcYMzSk2fjrJXAQeFn5NlmIYphp0',
-    appId: '1:640669716842:android:bb6102da9c6e00f8a55513',
+    appId: '1:640669716842:android:df5e751ca54e1547a55513',
     messagingSenderId: '640669716842',
     projectId: 'smart-medicine-eb37a',
     storageBucket: 'smart-medicine-eb37a.firebasestorage.app',
   );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBbf5iE2atZk2GGfSiGhistBq-bHzz_Xjo',
+    appId: '1:640669716842:ios:c8df33b58d483c2ea55513',
+    messagingSenderId: '640669716842',
+    projectId: 'smart-medicine-eb37a',
+    storageBucket: 'smart-medicine-eb37a.firebasestorage.app',
+    iosBundleId: 'com.aegis.medicalapp',
+  );
+
 }

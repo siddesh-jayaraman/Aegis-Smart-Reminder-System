@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:640669716842:android:bb6102da9c6e00f8a55513",
+        "mobilesdk_app_id": "1:640669716842:android:df5e751ca54e1547a55513",
         "android_client_info": {
-          "package_name": "com.example.aegis_smart_medicine_reminder_system"
+          "package_name": "com.aegis.medicalapp"
         }
       },
       "oauth_client": [],
