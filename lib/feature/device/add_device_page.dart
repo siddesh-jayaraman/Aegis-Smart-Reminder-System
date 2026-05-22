@@ -36,9 +36,14 @@ class _AddDevicePageState extends State<AddDevicePage> {
       await FirebaseFirestore.instance
           .collection('devices')
           .doc(_deviceIdController.text.trim())
-          .update({
-            "deviceName": _deviceNameController.text.trim(),
+          .set({
+            "name": _deviceNameController.text.trim(),
             "uid": FirebaseAuth.instance.currentUser!.uid,
+            "deviceId": _deviceIdController.text.trim(),
+            "createdAt": Timestamp.now(),
+            "lastSeen": Timestamp.now(),
+            "status": "active",
+            "type": "medicine_tracker",
           });
       _deviceNameController.clear();
       _deviceIdController.clear();
@@ -57,6 +62,7 @@ class _AddDevicePageState extends State<AddDevicePage> {
       ),
       extendBodyBehindAppBar: true,
       body: Container(
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -140,7 +146,7 @@ class _AddDevicePageState extends State<AddDevicePage> {
                       height: 52,
                       child: ElevatedButton.icon(
                         onPressed: _saveDevice,
-                        icon: const Icon(Icons.save),
+                        icon: const Icon(Icons.save, color: Colors.white),
                         label: const Text(
                           'Save Device',
                           style: TextStyle(

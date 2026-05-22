@@ -1,4 +1,5 @@
 import 'package:aegis_smart_medicine_reminder_system/core/theme/app_theme.dart';
+import 'package:aegis_smart_medicine_reminder_system/feature/device/add_device_page.dart';
 import 'package:aegis_smart_medicine_reminder_system/feature/device/bluetooth_connections.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,11 +34,11 @@ class _SettingsPageState extends State<SettingsPage> {
     _caregiverCode = AppTheme.caregiverCode;
   }
 
-  Future<void> _pickTime(ValueChanged<TimeOfDay> onPicked, TimeOfDay initial) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
+  Future<void> _pickTime(
+    ValueChanged<TimeOfDay> onPicked,
+    TimeOfDay initial,
+  ) async {
+    final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked != null) {
       onPicked(picked);
     }
@@ -203,9 +204,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                             ),
                           ),
-                          style: TextStyle(
-                            color: AppTheme.textColor,
-                          ),
+                          style: TextStyle(color: AppTheme.textColor),
                           onChanged: (value) {
                             _caregiverEmail = value;
                             AppTheme.setCaregiverEmail(value);
@@ -229,9 +228,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                             ),
                           ),
-                          style: TextStyle(
-                            color: AppTheme.textColor,
-                          ),
+                          style: TextStyle(color: AppTheme.textColor),
                           onChanged: (value) {
                             _caregiverCode = value;
                             AppTheme.setCaregiverCode(value);
@@ -250,11 +247,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         label: 'Morning',
                         time: _morningTime,
                         onTap: () {
-                          _pickTime((picked) {
-                            setState(() {
-                              _morningTime = picked;
-                            });
-                          }, _morningTime ?? const TimeOfDay(hour: 8, minute: 0));
+                          _pickTime(
+                            (picked) {
+                              setState(() {
+                                _morningTime = picked;
+                              });
+                            },
+                            _morningTime ?? const TimeOfDay(hour: 8, minute: 0),
+                          );
                         },
                       ),
                       const SizedBox(height: 10),
@@ -262,11 +262,15 @@ class _SettingsPageState extends State<SettingsPage> {
                         label: 'Afternoon',
                         time: _afternoonTime,
                         onTap: () {
-                          _pickTime((picked) {
-                            setState(() {
-                              _afternoonTime = picked;
-                            });
-                          }, _afternoonTime ?? const TimeOfDay(hour: 14, minute: 0));
+                          _pickTime(
+                            (picked) {
+                              setState(() {
+                                _afternoonTime = picked;
+                              });
+                            },
+                            _afternoonTime ??
+                                const TimeOfDay(hour: 14, minute: 0),
+                          );
                         },
                       ),
                       const SizedBox(height: 10),
@@ -274,11 +278,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         label: 'Night',
                         time: _nightTime,
                         onTap: () {
-                          _pickTime((picked) {
-                            setState(() {
-                              _nightTime = picked;
-                            });
-                          }, _nightTime ?? const TimeOfDay(hour: 20, minute: 0));
+                          _pickTime(
+                            (picked) {
+                              setState(() {
+                                _nightTime = picked;
+                              });
+                            },
+                            _nightTime ?? const TimeOfDay(hour: 20, minute: 0),
+                          );
                         },
                       ),
                     ],
@@ -287,50 +294,105 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 16),
                 _sectionCard(
                   title: 'Connectivity',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const BluetoothConnectionPage(),
-                        ),
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppTheme.buttonPrimary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddDevicePage(),
                             ),
-                            child: Icon(
-                              Icons.bluetooth,
-                              color: AppTheme.buttonPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Bluetooth Connection',
-                              style: TextStyle(
-                                fontFamily: 'CalSans',
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textColor,
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.buttonPrimary.withOpacity(
+                                    0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.link,
+                                  color: AppTheme.buttonPrimary,
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Direct Device Connection',
+                                  style: TextStyle(
+                                    fontFamily: 'CalSans',
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textColor,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppTheme.iconColor,
+                              ),
+                            ],
                           ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                            color: AppTheme.iconColor,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+
+                      InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const BluetoothConnectionPage(),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.buttonPrimary.withOpacity(
+                                    0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.bluetooth,
+                                  color: AppTheme.buttonPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Bluetooth Connection',
+                                  style: TextStyle(
+                                    fontFamily: 'CalSans',
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textColor,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppTheme.iconColor,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -375,9 +437,7 @@ class _SettingsPageState extends State<SettingsPage> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppTheme.buttonPrimary.withOpacity(0.08),
-        ),
+        border: Border.all(color: AppTheme.buttonPrimary.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -449,9 +509,7 @@ class _SettingsPageState extends State<SettingsPage> {
         decoration: BoxDecoration(
           color: AppTheme.buttonPrimary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppTheme.buttonPrimary.withOpacity(0.2),
-          ),
+          border: Border.all(color: AppTheme.buttonPrimary.withOpacity(0.2)),
         ),
         child: Row(
           children: [
@@ -543,16 +601,14 @@ class _ProfileCard extends StatelessWidget {
         }
 
         final data = snapshot.data?.data();
-        final name =
-            (data?['name'] as String?)?.trim().isNotEmpty == true
-                ? (data?['name'] as String).trim()
-                : (user?.displayName?.trim().isNotEmpty == true
-                    ? user!.displayName!.trim()
-                    : 'User');
-        final email =
-            (data?['email'] as String?)?.trim().isNotEmpty == true
-                ? (data?['email'] as String).trim()
-                : (user?.email ?? 'No email');
+        final name = (data?['name'] as String?)?.trim().isNotEmpty == true
+            ? (data?['name'] as String).trim()
+            : (user?.displayName?.trim().isNotEmpty == true
+                  ? user!.displayName!.trim()
+                  : 'User');
+        final email = (data?['email'] as String?)?.trim().isNotEmpty == true
+            ? (data?['email'] as String).trim()
+            : (user?.email ?? 'No email');
         final createdAtRaw = data?['createdAt'];
         final createdAt = createdAtRaw is Timestamp
             ? createdAtRaw.toDate()
